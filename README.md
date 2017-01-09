@@ -8,7 +8,7 @@ The `route` middleware is responsible for client-side routing.
 - processes: element nodes
 - throws on: text nodes
 - use as: component middleware
-- [docs](http://nx-framework/docs/middlewares/route)
+- [docs](http://nx-framework.com/docs/middlewares/route)
 
 ## Installation
 
