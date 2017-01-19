@@ -100,6 +100,9 @@ function routeRouterAndChildren (router, route) {
     if (!routeEvent.defaultPrevented) {
       routeRouter(router, nextView)
       router.$currentView = nextView
+      const route = history.state.route
+      route[router.$routerLevel] = nextView
+      history.replaceState({route, params: history.state.params}, '')
     }
   } else {
     routeChildren(router, route)
