@@ -37,7 +37,7 @@ function setupRouter (router) {
     siblingRouters.add(router)
     router.$cleanup(cleanupRouter, siblingRouters)
   } else {
-    router.$routerLevel = 1
+    router.$routerLevel = 0
     rootRouters.add(router)
     router.$cleanup(cleanupRouter, rootRouters)
   }
@@ -48,7 +48,7 @@ function cleanupRouter (siblingRouters) {
 }
 
 function absoluteToRelativeRoute (router, route) {
-  return route.slice(router.$routerLevel - 1)
+  return route.slice(router.$routerLevel)
 }
 
 function extractViews (router) {
