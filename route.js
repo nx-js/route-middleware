@@ -1,39 +1,39 @@
 'use strict'
 
-const secret = {
+const dom = require('@nx-js/dom-util')
+
+const symbols = {
   config: Symbol('router config')
 }
 const rootRouters = new Set()
-let cloneId = 0
 
-window.addEventListener('popstate', onPopState, true)
+window.addEventListener('popstate', routeFromRoot)
 
-function onPopState (ev) {
-  for (let router of rootRouters) {
-    routeRouterAndChildren(router, history.state.route)
-  }
+function routeFromRoot () {
+  rootRouters.forEach(routeRouterAndChildren)
 }
 
 function router (router) {
   if (router.nodeType !== 1) {
-    throw new Error('router only works with element nodes')
+    throw new Error('Router only works with element nodes')
   }
   setupRouter(router)
   extractViews(router)
-  routeRouterAndChildren(router, absoluteToRelativeRoute(router, history.state.route))
+  routeRouterAndChildren(router)
 }
 router.$name = 'router'
 module.exports = router
 
 function setupRouter (router) {
-  router[secret.config] = {
+  router[symbols.config] = {
     children: new Set(),
     templates: new Map()
   }
-  const parentRouter = findParentRouter(router)
+
+  const parentRouter = dom.findAncestor(router, isRouter)
   if (parentRouter) {
     router.$routerLevel = parentRouter.$routerLevel + 1
-    const siblingRouters = parentRouter[secret.config].children
+    const siblingRouters = parentRouter[symbols.config].children
     siblingRouters.add(router)
     router.$cleanup(cleanupRouter, siblingRouters)
   } else {
@@ -43,22 +43,27 @@ function setupRouter (router) {
   }
 }
 
+function isRouter (node) {
+  return node[symbols.config] !== undefined
+}
+
 function cleanupRouter (siblingRouters) {
   siblingRouters.delete(this)
 }
 
-function absoluteToRelativeRoute (router, route) {
-  return route.slice(router.$routerLevel)
-}
-
 function extractViews (router) {
+  const config = router[symbols.config]
   let child = router.firstChild
   while (child) {
-    if (child.nodeType === 1 && child.hasAttribute('route')) {
+    if (child.nodeType === 1) {
       const route = child.getAttribute('route')
-      router[secret.config].templates.set(route, child)
+      if (route) {
+        config.templates.set(route, child)
+      } else {
+        throw new Error('router children must have a non empty route attribute')
+      }
       if (child.hasAttribute('default-route')) {
-        router[secret.config].defaultView = route
+        config.defaultView = route
       }
     }
     child.remove()
@@ -66,59 +71,54 @@ function extractViews (router) {
   }
 }
 
-function findParentRouter (node) {
-  node = node.parentNode
-  while (node && node.$routerLevel === undefined) {
-    node = node.parentNode
-  }
-  return node
-}
-
-function routeRouterAndChildren (router, route) {
-  route = route.slice()
-  const config = router[secret.config]
+function routeRouterAndChildren (router) {
+  const route = history.state.route
+  const config = router[symbols.config]
   const templates = config.templates
   const defaultView = config.defaultView
-  const prevView = router.$currentView
-  let nextView = route.shift()
+  const currentView = config.currentView
+  let nextView = route[router.$routerLevel]
+  let useDefault = false
 
   if (!templates.has(nextView) && templates.has(defaultView)) {
     nextView = defaultView
+    useDefault = true
   }
-  if (prevView !== nextView) {
-    const eventConfig = {
-      bubbles: true,
-      cancelable: true,
-      detail: {
-        from: prevView,
-        to: nextView
+
+  let defaultPrevented = false
+  if (currentView !== nextView) {
+    const routeEvent = dispatchRouteEvent(router, currentView, nextView)
+    defaultPrevented = routeEvent.defaultPrevented
+    if (!defaultPrevented) {
+      routeRouter(router, nextView)
+      if (useDefault) {
+        route[router.$routerLevel] = defaultView
+        const state = Object.assign({}, history.state, { route })
+        history.replaceState(state, '')
       }
     }
-    const routeEvent = new CustomEvent('route', eventConfig)
-    router.dispatchEvent(routeEvent)
-
-    if (!routeEvent.defaultPrevented) {
-      routeRouter(router, nextView)
-      router.$currentView = nextView
-      const route = history.state.route
-      route[router.$routerLevel] = nextView
-      history.replaceState({route, params: history.state.params}, '')
-    }
-  } else {
-    routeChildren(router, route)
+  } else if (!defaultPrevented) {
+    config.children.forEach(routeRouterAndChildren)
   }
+}
+
+function dispatchRouteEvent (router, fromView, toView) {
+  const eventConfig = {
+    bubbles: true,
+    cancelable: true,
+    detail: { from: fromView, to: toView }
+  }
+  const routeEvent = new CustomEvent('route', eventConfig)
+  router.dispatchEvent(routeEvent)
+  return routeEvent
 }
 
 function routeRouter (router, nextView) {
+  const config = router[symbols.config]
+  config.currentView = nextView
   router.innerHTML = ''
-  const template = router[secret.config].templates.get(nextView)
+  const template = config.templates.get(nextView)
   if (template) {
     router.appendChild(document.importNode(template, true))
-  }
-}
-
-function routeChildren (router, route) {
-  for (let childRouter of router[secret.config].children) {
-    routeRouterAndChildren(childRouter, route)
   }
 }
