@@ -13,13 +13,14 @@ function routeFromRoot () {
   rootRouters.forEach(routeRouterAndChildren)
 }
 
-module.exports = function route (router) {
+function route (router) {
   setupRouter(router)
   extractViews(router)
   routeRouterAndChildren(router)
 }
 route.$name = 'router'
 route.$type = 'component'
+module.exports = route
 
 function setupRouter (router) {
   router[symbols.config] = {
