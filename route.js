@@ -13,16 +13,13 @@ function routeFromRoot () {
   rootRouters.forEach(routeRouterAndChildren)
 }
 
-function router (router) {
-  if (router.nodeType !== 1) {
-    throw new Error('Router only works with element nodes')
-  }
+module.exports = function route (router) {
   setupRouter(router)
   extractViews(router)
   routeRouterAndChildren(router)
 }
-router.$name = 'router'
-module.exports = router
+route.$name = 'router'
+route.$type = 'component'
 
 function setupRouter (router) {
   router[symbols.config] = {
