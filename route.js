@@ -104,7 +104,7 @@ function dispatchRouteEvent (router, fromView, toView) {
   const eventConfig = {
     bubbles: true,
     cancelable: true,
-    detail: { from: fromView, to: toView }
+    detail: { from: fromView, to: toView, level: router.$routerLevel }
   }
   const routeEvent = new CustomEvent('route', eventConfig)
   router.dispatchEvent(routeEvent)
