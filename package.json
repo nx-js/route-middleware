@@ -1,6 +1,6 @@
 {
   "name": "@nx-js/route-middleware",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "description": "An NX middleware, responsible for path routing.",
   "main": "route.js",
   "author": {
@@ -23,6 +23,6 @@
     "path"
   ],
   "dependencies": {
-    "@nx-js/dom-util": "^1.0.0"
+    "@nx-js/dom-util": "^1.1.0"
   }
 }
